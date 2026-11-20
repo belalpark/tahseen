@@ -215,10 +215,11 @@
     } else {
       body = '<article class="card">' + p.parts.map((pt, k) => {
         const whole = pt.from === 1 && pt.to === pt.total;
-        const sub = whole ? ayahWord(pt.ayahs.length) : (pt.from === pt.to ? 'الآية ' + pt.from : 'الآيات ' + pt.from + ' – ' + pt.to);
+        const sub = pt.label || (whole ? ayahWord(pt.ayahs.length) : (pt.from === pt.to ? 'الآية ' + pt.from : 'الآيات ' + pt.from + ' – ' + pt.to));
+        const lbl = pt.label ? 'color:var(--gold);font-size:18px;' : '';
         let h = k === 0
-          ? `<div class="surah-head">${frame}<b class="goldtxt">سورة ${pt.sname}</b></div><p class="part-sub">${sub}</p>`
-          : `<div class="sep-orn" aria-hidden="true"><i></i><b></b><i></i></div><p class="part-sub" style="margin-top:0">${sub}</p>`;
+          ? `<div class="surah-head">${frame}<b class="goldtxt">سورة ${pt.sname}</b></div><p class="part-sub" style="${lbl}">${sub}</p>`
+          : `<div class="sep-orn" aria-hidden="true"><i></i><b></b><i></i></div><p class="part-sub" style="margin-top:0;${lbl}">${sub}</p>`;
         if (pt.basmala) h += `<p class="basmala" data-q="${qk++}">${DATA.basmala}</p>`;
         h += '<p class="mushaf">' + pt.ayahs.map(([n, t]) => `<span class="ayah" data-q="${qk++}">${t}&nbsp;<span class="an">۝${arDigits(n)}</span></span>`).join(' ') + '</p>';
         return h;

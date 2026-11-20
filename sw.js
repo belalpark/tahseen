@@ -1,5 +1,5 @@
 /* تحصين — offline cache for the app shell and texts (audio streams from the network) */
-const CACHE = 'tahseen-v1';
+const CACHE = 'tahseen-v2';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'app.js', 'data/ruqyah.json', 'manifest.webmanifest',
   'fonts/UthmanicHafs-v-3.0.ttf', 'fonts/amiri-700.woff2', 'fonts/amiri-latin-700.woff2',
