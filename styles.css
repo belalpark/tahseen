@@ -1,0 +1,206 @@
+/* ===== Fonts ===== */
+@font-face{font-family:"KFGQPC Hafs";src:url("fonts/UthmanicHafs-v-3.0.ttf") format("truetype");font-display:block}
+@font-face{font-family:"Amiri";font-weight:700;src:url("fonts/amiri-700.woff2") format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200E,U+FB50-FDFF,U+FE70-FEFC;font-display:swap}
+@font-face{font-family:"Amiri";font-weight:700;src:url("fonts/amiri-latin-700.woff2") format("woff2");unicode-range:U+0000-00FF,U+2000-206F;font-display:swap}
+@font-face{font-family:"Ruqaa";font-weight:700;src:url("fonts/ruqaa-700.woff2") format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC;font-display:swap}
+@font-face{font-family:"Ruqaa";font-weight:700;src:url("fonts/ruqaa-latin-700.woff2") format("woff2");unicode-range:U+0000-00FF;font-display:swap}
+
+/* ===== Theme ===== */
+:root{
+  --fs:1;
+  --bg:#03140c; --bg2:#0a2b1c; --bg3:#0f3a26;
+  --card:#08271a; --card2:#0b3221; --line:rgba(226,189,102,.28);
+  --gold:#e2bd66; --gold-hi:#fff0c2; --gold-lo:#a87a2c;
+  --ink:#f4ead0; --ink2:#cfd9c8; --muted:#9fb3a3;
+  --hl:rgba(242,201,104,.16); --hl-line:rgba(242,201,104,.55);
+  --shadow:0 18px 40px rgba(0,0,0,.45);
+  --gold-grad:linear-gradient(180deg,#fff3c9 0%,#ecc56b 38%,#b8852f 70%,#f2d68b 100%);
+  --gold-edge:linear-gradient(90deg,#6e4a18,#d9b25e 18%,#fff0c0 50%,#d9b25e 82%,#6e4a18);
+  --pattern:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='132'%3E%3Cg fill='none' stroke='%23e2bf72' stroke-width='1.3'%3E%3Crect x='36' y='36' width='60' height='60'/%3E%3Crect x='36' y='36' width='60' height='60' transform='rotate(45 66 66)'/%3E%3Cpath d='M0 0L23.6 23.6M132 0L108.4 23.6M0 132L23.6 108.4M132 132L108.4 108.4'/%3E%3Ccircle cx='66' cy='66' r='12'/%3E%3C/g%3E%3C/svg%3E");
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+html[data-theme="light"]{
+  --bg:#f5eedc; --bg2:#efe5cc; --bg3:#e8dcbd;
+  --card:#fffaf0; --card2:#fbf3e2; --line:rgba(150,110,40,.30);
+  --gold:#a8792a; --gold-hi:#d9ab4e; --gold-lo:#7a5418;
+  --ink:#1c2a20; --ink2:#38463b; --muted:#6c7a6e;
+  --hl:rgba(196,150,60,.16); --hl-line:rgba(168,121,42,.55);
+  --shadow:0 14px 30px rgba(80,60,20,.14);
+  --gold-grad:linear-gradient(180deg,#b88a35 0%,#8e6420 55%,#b98b38 100%);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:"Amiri",serif;color:var(--ink);background:var(--bg);
+  background-image:radial-gradient(ellipse 900px 700px at 50% 0%,var(--bg3),transparent 70%),linear-gradient(180deg,var(--bg2),var(--bg) 60%);
+  background-attachment:fixed;
+}
+body::before{content:"";position:fixed;inset:0;background:var(--pattern);opacity:.05;pointer-events:none;z-index:0}
+#app{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:calc(var(--safe-t) + 12px) 16px calc(var(--safe-b) + 24px)}
+button{font-family:inherit;color:inherit;cursor:pointer}
+.ruqaa{font-family:"Ruqaa","Amiri",serif}
+.goldtxt{background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ===== Buttons ===== */
+.btn{border:0;border-radius:16px;padding:14px 20px;font:700 20px/1.2 "Amiri";display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s, filter .2s}
+.btn:active{transform:scale(.98)}
+a.btn{text-decoration:none}
+.btn.gold{background:linear-gradient(180deg,#f6dc93,#d6aa50 55%,#b5832f);color:#10261a;box-shadow:0 8px 22px rgba(214,170,80,.28),inset 0 1px 0 rgba(255,255,255,.5)}
+html[data-theme="light"] .btn.gold{color:#fff;background:linear-gradient(180deg,#c99a45,#9c6f24)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn.small{padding:8px 14px;font-size:16px;border-radius:12px}
+.btn.block{width:100%}
+.icon-btn{width:44px;height:44px;border-radius:14px;border:1.5px solid var(--line);background:color-mix(in srgb,var(--card) 70%,transparent);display:grid;place-items:center}
+.icon-btn svg{width:22px;height:22px;stroke:var(--gold);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chip{border:1.5px solid var(--line);background:var(--card2);border-radius:12px;padding:6px 12px;font:700 18px "Amiri"}
+
+/* ===== Home ===== */
+.hero{text-align:center;padding:18px 0 6px}
+.hero img{width:132px;height:132px;filter:drop-shadow(0 10px 22px rgba(0,0,0,.45))}
+.hero h1{margin:4px 0 0;font:700 64px/1.1 "Ruqaa";letter-spacing:0}
+.hero p{margin:6px 0 0;color:var(--ink2);font-size:20px}
+.orn{display:flex;align-items:center;justify-content:center;gap:12px;margin:16px auto 6px;max-width:420px}
+.orn i{flex:1;height:1.5px;background:linear-gradient(90deg,transparent,var(--gold))}
+.orn i:last-child{background:linear-gradient(270deg,transparent,var(--gold))}
+.orn b{width:12px;height:12px;transform:rotate(45deg);background:var(--gold);box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 25%,transparent)}
+
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 14px}
+.mode{position:relative;text-align:right;border-radius:20px;padding:16px 16px 14px;border:1.5px solid var(--line);background:var(--card);box-shadow:var(--shadow);transition:border-color .2s, background .2s}
+.mode svg{width:30px;height:30px;stroke:var(--gold);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mode h3{margin:6px 0 2px;font:700 22px "Amiri"}
+.mode p{margin:0;color:var(--muted);font-size:15.5px;line-height:1.5}
+.mode .tag{position:absolute;left:12px;top:12px;font-size:12.5px;color:var(--gold);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.mode[aria-pressed="true"]{border-color:var(--gold);background:linear-gradient(180deg,var(--card2),var(--card));box-shadow:0 0 0 1px var(--gold) inset,var(--shadow)}
+.mode[aria-pressed="true"]::after{content:"";position:absolute;inset:-1px;border-radius:20px;padding:1.5px;background:var(--gold-edge);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+
+.cta{margin:4px 0 18px}
+.cta small{display:block;font-size:14px;opacity:.75;font-weight:700}
+
+.today{display:flex;align-items:center;gap:14px;border:1.5px solid var(--line);border-radius:20px;padding:14px 16px;background:var(--card);margin-bottom:14px}
+.ring{--p:0;width:58px;height:58px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:conic-gradient(var(--gold) calc(var(--p)*1%),color-mix(in srgb,var(--gold) 16%,transparent) 0);}
+.ring span{width:46px;height:46px;border-radius:50%;background:var(--card);display:grid;place-items:center;font:700 17px "Amiri"}
+.today h4{margin:0;font-size:19px}
+.today p{margin:2px 0 0;color:var(--muted);font-size:15px}
+
+.index{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.index a{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;border-radius:18px;padding:10px 14px 10px 12px;border:1.5px solid var(--line);
+  background:linear-gradient(180deg,var(--card2),var(--card));box-shadow:0 6px 16px rgba(0,0,0,.18);min-height:66px}
+.index .tt{flex:1;min-width:0}
+.index .tt b{display:block;font-size:21px;line-height:1.35}
+.index .tt small{display:block;color:var(--muted);font-size:14.5px}
+.index .chk{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;flex:none}
+.index .done .chk{background:var(--gold);border-color:var(--gold)}
+.index .done .chk svg{stroke:#0b2418}
+.index .chk svg{width:16px;height:16px;fill:none;stroke:transparent;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.index .done b{color:var(--gold)}
+
+/* octagram number badge */
+.star{position:relative;width:50px;height:50px;flex:none;display:grid;place-items:center}
+.star::before,.star::after{content:"";position:absolute;inset:7px;background:var(--gold-grad);border-radius:3px}
+.star::after{transform:rotate(45deg)}
+.star i{position:absolute;inset:11px;background:var(--card);border-radius:2px;z-index:1}
+.star i::after{content:"";position:absolute;inset:0;background:inherit;transform:rotate(45deg);border-radius:2px}
+.star span{position:relative;z-index:2;font:700 19px/1 "Amiri";color:var(--gold);padding-top:4px}
+
+.foot{margin:26px 4px 0;color:var(--muted);font-size:14px;line-height:1.8;text-align:center}
+.foot a{color:var(--gold)}
+
+/* ===== Reader ===== */
+.topbar{position:sticky;top:0;z-index:5;margin:0 -16px;padding:calc(var(--safe-t) + 8px) 16px 10px;
+  background:linear-gradient(180deg,var(--bg) 70%,color-mix(in srgb,var(--bg) 0%,transparent));backdrop-filter:blur(6px)}
+.topbar .row{display:flex;align-items:center;gap:10px}
+.topbar .ttl{flex:1;text-align:center;min-width:0}
+.topbar .ttl b{display:block;font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .ttl small{color:var(--muted);font-size:14px}
+.bar{height:4px;border-radius:4px;background:color-mix(in srgb,var(--gold) 16%,transparent);margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold-edge);border-radius:4px;transition:width .3s}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.dots a{width:8px;height:8px;border-radius:50%;background:color-mix(in srgb,var(--gold) 25%,transparent)}
+.dots a.on{background:var(--gold);width:22px;border-radius:4px}
+.dots a.ok{background:color-mix(in srgb,var(--gold) 60%,transparent)}
+
+.card{position:relative;border-radius:26px;padding:26px 20px 24px;margin-top:8px;background:linear-gradient(180deg,var(--card2),var(--card));
+  border:3px solid transparent;background-clip:padding-box;box-shadow:var(--shadow)}
+.card::before{content:"";position:absolute;inset:-3px;border-radius:26px;padding:3px;background:var(--gold-edge);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.card::after{content:"";position:absolute;inset:9px;border-radius:19px;border:1px solid var(--line);pointer-events:none}
+
+.dhikr-head{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px}
+.dhikr-head h2{margin:0;font:700 46px/1.25 "Ruqaa"}
+.dhikr-head p{margin:0;color:var(--muted);font-size:15px}
+.dhikr{font:700 calc(30px*var(--fs))/1.9 "Amiri";text-align:center;margin:8px 4px 6px;text-wrap:balance}
+.dhikr .p{color:var(--gold)}
+.note{margin:14px auto 0;text-align:center;color:var(--muted);font-size:15px;max-width:440px}
+
+.surah-head{position:relative;margin:2px auto 16px;max-width:440px;height:64px;display:grid;place-items:center}
+.surah-head svg{position:absolute;inset:0;width:100%;height:100%}
+.surah-head b{position:relative;font:700 27px/1 "Amiri";padding-top:6px}
+.part-sub{text-align:center;color:var(--muted);font-size:15px;margin:-8px 0 12px}
+.basmala{font-family:"KFGQPC Hafs";font-size:calc(31px*var(--fs));text-align:center;line-height:1.9;margin:0 0 10px;border-radius:12px;transition:background .2s}
+.mushaf{font-family:"KFGQPC Hafs";font-size:calc(29px*var(--fs));line-height:2.15;text-align:justify;text-align-last:center;word-spacing:1px;margin:0 2px}
+.ayah{border-radius:10px;padding:2px 1px;transition:background .25s, box-shadow .25s;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.an{color:var(--gold);font-family:"KFGQPC Hafs";white-space:nowrap}
+.listen .ayah{cursor:pointer}
+.ayah.cur,.basmala.cur{background:var(--hl);box-shadow:0 0 0 1px var(--hl-line) inset}
+.sep-orn{display:flex;align-items:center;justify-content:center;gap:10px;margin:22px 0 18px}
+.sep-orn i{flex:1;max-width:160px;height:1.5px;background:linear-gradient(90deg,transparent,var(--gold))}
+.sep-orn i:last-child{background:linear-gradient(270deg,transparent,var(--gold))}
+.sep-orn b{width:10px;height:10px;transform:rotate(45deg);background:var(--gold)}
+
+.pager{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:16px}
+.pager .btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.finish{margin-top:16px;text-align:center}
+.finish h3{font:700 34px "Ruqaa";margin:6px 0}
+
+/* ===== Player ===== */
+.player{position:sticky;bottom:calc(var(--safe-b) + 10px);z-index:6;margin-top:16px;border-radius:22px;padding:10px 12px;
+  background:color-mix(in srgb,var(--card2) 92%,transparent);backdrop-filter:blur(10px);border:1.5px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.45)}
+.player .prow{display:flex;align-items:center;gap:8px}
+.player .info{flex:1;min-width:0}
+.player .info b{display:block;font-size:16.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player .info small{color:var(--muted);font-size:13.5px}
+.pbtn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:transparent;display:grid;place-items:center;flex:none}
+.pbtn svg{width:20px;height:20px;fill:var(--gold);stroke:none}
+.pbtn.main{width:58px;height:58px;border:0;background:linear-gradient(180deg,#f6dc93,#c99a45)}
+.pbtn.main svg{fill:#10261a;width:24px;height:24px}
+html[data-theme="light"] .pbtn.main svg{fill:#fff}
+html[data-theme="light"] .pbtn.main{background:linear-gradient(180deg,#c99a45,#9c6f24)}
+.pbtn.rep{width:auto;padding:0 10px;border-radius:14px;font:700 14px "Amiri";color:var(--gold)}
+.pbtn.busy{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.55}}
+
+/* ===== Sheet ===== */
+.sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:600px;margin:0 auto;background:var(--card);border-radius:26px 26px 0 0;
+  padding:10px 20px calc(var(--safe-b) + 18px);border-top:1.5px solid var(--line);box-shadow:0 -20px 50px rgba(0,0,0,.45);max-height:88vh;overflow:auto}
+.sheet-grip{width:44px;height:5px;border-radius:5px;background:var(--line);margin:4px auto 10px}
+.sheet h2{margin:0 0 8px;text-align:center;font:700 30px "Ruqaa"}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:18px}
+.set-row:last-of-type{border-bottom:0}
+.fs-ctl{display:flex;align-items:center;gap:8px}
+.fs-ctl input{width:130px;accent-color:var(--gold)}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;flex:none}
+.seg button{border:0;background:transparent;padding:7px 12px;font:700 16px "Amiri"}
+.seg button[aria-pressed="true"]{background:var(--gold);color:#10261a}
+html[data-theme="light"] .seg button[aria-pressed="true"]{color:#fff}
+select{font:700 16px "Amiri";color:var(--ink);background:var(--card2);border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;max-width:58%}
+.switch{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:30px;background:color-mix(in srgb,var(--gold) 22%,transparent);position:relative;flex:none;cursor:pointer;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.switch:checked{background:var(--gold)}
+.switch:checked::after{transform:translateX(-20px)}
+.sheet .btn.block{margin-top:14px}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 96px);transform:translateX(-50%);z-index:30;background:#0b1f15;color:#f4ead0;border:1px solid var(--line);padding:10px 16px;border-radius:14px;font-size:16px;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+
+@media (min-width:700px){
+  .hero h1{font-size:76px}
+  .card{padding:34px 36px 30px}
+  .mushaf{font-size:calc(32px*var(--fs))}
+  .basmala{font-size:calc(34px*var(--fs))}
+}
+@media (max-width:380px){
+  .modes{gap:8px}.mode{padding:14px 12px}.mode h3{font-size:20px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

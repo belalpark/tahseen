@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>تحصين · الرقية الشرعية</title>
+<meta name="description" content="تحصين — الرقية الشرعية مرتبة صفحةً صفحة: التحريج، التحصين، والسور والآيات بخط مصحف المدينة، مع القراءة والاستماع.">
+<meta name="theme-color" content="#041a10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="تحصين">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta property="og:title" content="تحصين · الرقية الشرعية">
+<meta property="og:description" content="الرقية الشرعية مرتبة صفحةً صفحة — قراءة واستماع">
+<meta property="og:image" content="icons/icon-512.png">
+<link rel="preload" href="fonts/UthmanicHafs-v-3.0.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" aria-live="polite"></div>
+
+<!-- settings sheet -->
+<div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet-grip"></div>
+  <h2 id="sheetTitle">الإعدادات</h2>
+
+  <div class="set-row">
+    <label for="fsRange">حجم الخط</label>
+    <div class="fs-ctl">
+      <button class="chip" data-fs="-" aria-label="تصغير الخط">أ−</button>
+      <input type="range" id="fsRange" min="0.8" max="1.8" step="0.05">
+      <button class="chip" data-fs="+" aria-label="تكبير الخط">أ+</button>
+    </div>
+  </div>
+
+  <div class="set-row">
+    <span class="lbl">المظهر</span>
+    <div class="seg" id="themeSeg">
+      <button data-theme="dark">ليلي</button>
+      <button data-theme="light">نهاري</button>
+    </div>
+  </div>
+
+  <div class="set-row">
+    <label for="reciterSel">القارئ</label>
+    <select id="reciterSel"></select>
+  </div>
+
+  <div class="set-row">
+    <span class="lbl">تكرار كل صفحة عند الاستماع</span>
+    <div class="seg" id="repeatSeg">
+      <button data-rep="1">مرة</button>
+      <button data-rep="3">3 مرات</button>
+      <button data-rep="7">7 مرات</button>
+    </div>
+  </div>
+
+  <div class="set-row">
+    <label for="autoChk">الانتقال تلقائياً للصفحة التالية بعد انتهاء التلاوة</label>
+    <input type="checkbox" id="autoChk" class="switch">
+  </div>
+
+  <div class="set-row">
+    <span class="lbl">تقدّم اليوم</span>
+    <button class="btn ghost small" id="resetBtn">تصفير التقدّم</button>
+  </div>
+
+  <button class="btn gold block" id="sheetClose">تم</button>
+</section>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
