@@ -1,5 +1,7 @@
 # تحصين · الرقية الشرعية
 
+**الموقع:** https://belalpark.github.io/tahseen/
+
 تطبيق ويب بسيط يعرض الرقية الشرعية مرتّبةً صفحةً صفحة:
 
 1. سورة الفاتحة
@@ -21,7 +23,7 @@
 ## المصادر
 - **نص القرآن:** مجمع الملك فهد لطباعة المصحف الشريف — نص حفص العثماني، الإصدار 3.0، عبر مجموعة بيانات
   [quran-text](https://github.com/quran-ws/quran-text) (CC BY 4.0). طوبق النص آيةً آية مع نص
-  [موسوعة القرآن الكريم QuranEnc](https://quranenc.com) ونص [Tanzil](https://tanzil.net) دون أي اختلاف في الحروف أو التشكيل.
-- **الخط القرآني:** KFGQPC HAFS Uthmanic Script v3.0 من مجمع الملك فهد، يُوزَّع دون تعديل وفق رخصته (`fonts/KFGQPC-FONT-LICENSE.txt`).
+  [موسوعة القرآن الكريم QuranEnc](https://quranenc.com) ونص [Tanzil](https://tanzil.net) دون أي اختلاف في الحروف أو التشكيل، وتُعاد المطابقة آلياً مع كل نشر.
+- **الخط القرآني:** KFGQPC HAFS Uthmanic Script v3.0 من مجمع الملك فهد، يُوزَّع دون تعديل وفق رخصته (`fonts/KFGQPC-FONT-LICENSE.txt`).
 - **خطوط الواجهة:** Amiri و Aref Ruqaa (رخصة SIL OFL).
-- **التلاوات الصوتية:** [EveryAyah](https://everyayah.com) (تُشغَّل مباشرة من موقعهم).
+- **التلاوات الصوتية:** [EveryAyah](https://everyayah.com) (تُشغَّل مباشرة من موقعهم).
