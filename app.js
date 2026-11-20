@@ -345,7 +345,12 @@
   initSheet();
   fetch('data/ruqyah.json').then(r => r.json()).then(d => { DATA = d; route(); })
     .catch(() => { app.innerHTML = '<p class="note" style="margin-top:40vh">تعذّر تحميل المحتوى. أعد تحميل الصفحة.</p>'; });
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {   // a new version took over → show it once
+      if (hadController && !reloaded) { reloaded = true; location.reload(); }
+    });
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }
 })();
