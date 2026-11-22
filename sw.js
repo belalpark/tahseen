@@ -1,6 +1,6 @@
 /* تحصين — offline cache. Pages, code and texts: network first (so updates show at once), cache when offline.
    Fonts and icons: cache first. Audio streams from the network and is never cached here. */
-const CACHE = 'tahseen-v5';
+const CACHE = 'tahseen-v6';
 const STATE = 'tahseen-state';   // written by the app: time of the last counted reading
 const ASSETS = [
   './', 'index.html', 'styles.css', 'app.js', 'data/ruqyah.json', 'manifest.webmanifest',
@@ -32,7 +32,7 @@ self.addEventListener('fetch', e => {
   );
 });
 
-/* ---------- reminders (Web Push, sent every 6 hours by .github/workflows/push.yml) ---------- */
+/* ---------- reminders (Web Push, sent every 6 hours by the tahseen-push Cloudflare Worker) ---------- */
 const plural = (n, one, two, few, many) => n === 1 ? one : n === 2 ? two : (n >= 3 && n <= 10) ? n + ' ' + few : n + ' ' + many;
 function ago(ms) {
   const m = Math.floor(ms / 60000);
@@ -65,4 +65,14 @@ self.addEventListener('notificationclick', e => {
     const w = list.find(c => c.url.startsWith(self.registration.scope));
     return w ? w.focus() : self.clients.openWindow(url);
   }));
+});
+// the browser renewed the subscription: subscribe again with the server's key and tell the server
+self.addEventListener('pushsubscriptionchange', e => {
+  e.waitUntil(readState().then(async st => {
+    if (!st.api) return;
+    const key = (await (await fetch(st.api + '/key')).json()).publicKey;
+    const raw = Uint8Array.from(atob(key.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((key.length + 3) % 4)), c => c.charCodeAt(0));
+    const sub = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: raw });
+    await fetch(st.api + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), device: 'renewed' }) });
+  }).catch(() => {}));
 });
