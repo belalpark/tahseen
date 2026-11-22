@@ -1,0 +1,21 @@
+# تحصين — خادم الإشعارات (Cloudflare Worker)
+# Deployed by Cloudflare Workers Builds from this folder (root directory: worker).
+name = "tahseen-push"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+# «هل قرأت التحصين؟» at 05:13, 11:13, 17:13, 23:13 Riyadh time (cron is UTC)
+[triggers]
+crons = ["13 2,8,14,20 * * *"]
+
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Store"]
+
+[observability]
+enabled = true
