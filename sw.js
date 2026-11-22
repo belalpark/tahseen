@@ -1,6 +1,7 @@
 /* تحصين — offline cache. Pages, code and texts: network first (so updates show at once), cache when offline.
    Fonts and icons: cache first. Audio streams from the network and is never cached here. */
-const CACHE = 'tahseen-v4';
+const CACHE = 'tahseen-v5';
+const STATE = 'tahseen-state';   // written by the app: time of the last counted reading
 const ASSETS = [
   './', 'index.html', 'styles.css', 'app.js', 'data/ruqyah.json', 'manifest.webmanifest',
   'fonts/UthmanicHafs-v-3.0.ttf', 'fonts/amiri-700.woff2', 'fonts/amiri-latin-700.woff2',
@@ -13,7 +14,7 @@ self.addEventListener('install', e => {
     .then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== STATE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 const put = (req, res) => { if (res && res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); } return res; };
 self.addEventListener('fetch', e => {
@@ -29,4 +30,39 @@ self.addEventListener('fetch', e => {
       .then(res => put(key, res))
       .catch(() => caches.match(key, { ignoreSearch: true }))
   );
+});
+
+/* ---------- reminders (Web Push, sent every 6 hours by .github/workflows/push.yml) ---------- */
+const plural = (n, one, two, few, many) => n === 1 ? one : n === 2 ? two : (n >= 3 && n <= 10) ? n + ' ' + few : n + ' ' + many;
+function ago(ms) {
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return 'منذ ' + plural(Math.max(m, 1), 'دقيقة', 'دقيقتين', 'دقائق', 'دقيقة');
+  const h = Math.floor(m / 60);
+  if (h < 24) return 'منذ ' + plural(h, 'ساعة', 'ساعتين', 'ساعات', 'ساعة');
+  const d = Math.floor(h / 24);
+  return 'منذ ' + plural(d, 'يوم', 'يومين', 'أيام', 'يوماً');
+}
+const readState = () => caches.open(STATE).then(c => c.match('state.json')).then(r => r ? r.json() : {}).catch(() => ({}));
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = {}; }
+  e.waitUntil(readState().then(st => {
+    const last = st.lastRead || 0, since = Date.now() - last;
+    let body;
+    if (!last) body = 'لم تُسجَّل قراءة محتسبة بعد. اضغط لبدء الرقية.';
+    else if (since < 6 * 3600 * 1000) body = 'آخر قراءة محتسبة ' + ago(since) + ' — بارك الله فيك.';
+    else body = 'آخر قراءة محتسبة ' + ago(since) + '. اضغط لبدء الرقية.';
+    return self.registration.showNotification(d.title || 'هل قرأت التحصين؟', {
+      body: d.body || body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png',
+      tag: 'tahseen-remind', renotify: true, lang: 'ar', dir: 'rtl', data: { url: d.url || './' }
+    });
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const w = list.find(c => c.url.startsWith(self.registration.scope));
+    return w ? w.focus() : self.clients.openWindow(url);
+  }));
 });

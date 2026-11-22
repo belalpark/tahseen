@@ -96,8 +96,21 @@
 
   /* ---------- session & timer ---------- */
   function ensureSession(i) {
-    if (!S.session) S.session = { started: Date.now(), activeMs: 0, page: i, scroll: {}, ayah: {}, done: [] };
+    if (!S.session) S.session = { started: Date.now(), activeMs: 0, page: i, scroll: {}, ayah: {}, done: [], order: DATA ? DATA.pages.map(p => p.id) : undefined };
     return S.session;
+  }
+  // A saved session keeps page numbers; if the page order changed since, move them to the same pages in the new order.
+  const OLD_ORDER = ['fatiha', 'baqarah', 'zalzalah', 'haqqah', 'dukhan', 'saffat', 'anfal', 'tahrij', 'tahseen'];
+  function remapSession(ids) {
+    const s = S.session; if (!s) return;
+    const from = Array.isArray(s.order) ? s.order : OLD_ORDER;
+    if (from.join() !== ids.join()) {
+      const to = k => ids.indexOf(from[k]);
+      const re = o => { const n = {}; Object.keys(o || {}).forEach(k => { const j = to(+k); if (j >= 0) n[j] = o[k]; }); return n; };
+      s.scroll = re(s.scroll); s.ayah = re(s.ayah);
+      const j = to(s.page); s.page = j >= 0 ? j : 0;
+    }
+    s.order = ids; save();
   }
   const markDone = id => { const s = S.session; if (s && !s.done.includes(id)) { s.done.push(id); save(); } };
   function saveScroll() {
@@ -134,7 +147,7 @@
     }
     S.lastResult = { ok, ms, at: Date.now() };
     S.session = null;
-    stopAudio(); save(true);
+    stopAudio(); save(true); syncSWState();
     location.hash = '#/done';
   }
   function startOver() { S.session = null; ensureSession(0); save(true); enterDir = ''; if (location.hash === '#/p/1') route(); else location.hash = '#/p/1'; }
@@ -152,11 +165,12 @@
   function releaseWake() { try { if (wake) wake.release(); } catch (e) { /* ignore */ } wake = null; }
 
   /* ---------- install to home screen ---------- */
+  const onHome = () => !!DATA && pageIdx < 0 && (!location.hash || location.hash === '#/' || location.hash === '#');
   let deferredPrompt = null;
   const standalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (pageIdx < 0 && DATA) renderHome(); });
-  window.addEventListener('appinstalled', () => { deferredPrompt = null; toast('تم تثبيت تحصين على جهازك'); if (pageIdx < 0 && DATA) renderHome(); });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (onHome()) renderHome(); });
+  window.addEventListener('appinstalled', () => { deferredPrompt = null; toast('تم تثبيت تحصين على جهازك'); if (onHome()) renderHome(); });
   function installCard() {
     if (standalone() || (!deferredPrompt && !isIOS)) return '';
     return `<div class="install"><img src="icons/apple-touch-icon.png" alt="">
@@ -176,7 +190,7 @@
   function doInstall() {
     if (deferredPrompt) {
       deferredPrompt.prompt();
-      deferredPrompt.userChoice.finally(() => { deferredPrompt = null; if (pageIdx < 0) renderHome(); });
+      deferredPrompt.userChoice.finally(() => { deferredPrompt = null; if (onHome()) renderHome(); });
     } else if (isIOS) iosInstallSheet();
   }
 
@@ -190,6 +204,166 @@
     openModal(`<div class="sheet-grip"></div><h2>${title}</h2><p class="note" style="font-size:17px">${text}</p>
       <div class="modal-actions"><button class="btn ghost" data-close>إلغاء</button><button class="btn gold" id="mOk">${okLabel}</button></div>`);
     $('#mOk').addEventListener('click', () => { closeModal(); onOk(); });
+  }
+
+  /* ---------- push notifications ----------
+     The reminder is sent every 6 hours by a scheduled GitHub workflow (tools/send-push.mjs) to every device
+     registered in push/subs/. The public VAPID key lives in data/push.json; the private key is the
+     repository secret VAPID_PRIVATE_KEY. Registering a device = committing its subscription file. */
+  const REPO = 'belalpark/tahseen';
+  const SITE = 'https://belalpark.github.io/tahseen/';
+  let PUSH = null;   // contents of data/push.json once the one-time setup is done
+  const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+  const ghNewFile = (path, text) => `https://github.com/${REPO}/new/main?filename=${encodeURIComponent(path)}&value=${encodeURIComponent(text)}`;
+  const pushCapable = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  function loadPushConfig() {
+    return fetch('data/push.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(j => {
+      PUSH = j && j.publicKey ? j : null;
+      return PUSH;
+    }).catch(() => PUSH);
+  }
+  // the service worker reads the last counted reading from here to word the notification
+  function syncSWState() {
+    try { caches.open('tahseen-state').then(c => c.put('state.json', new Response(JSON.stringify({ lastRead: S.lastRead || 0 }), { headers: { 'Content-Type': 'application/json' } }))); } catch (e) { /* ignore */ }
+  }
+  async function currentSub() {
+    if (!pushCapable()) return null;
+    const reg = await navigator.serviceWorker.ready;
+    return reg.pushManager.getSubscription();
+  }
+  async function subId(sub) {
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sub.endpoint));
+    return [...new Uint8Array(h)].slice(0, 6).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  function deviceLabel() {
+    const ua = navigator.userAgent;
+    const os = /iphone/i.test(ua) ? 'iPhone' : /ipad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'iPad'
+      : /android/i.test(ua) ? 'Android' : /windows/i.test(ua) ? 'Windows' : /mac os/i.test(ua) ? 'Mac' : 'جهاز';
+    const br = /edg\//i.test(ua) ? 'Edge' : /samsungbrowser/i.test(ua) ? 'Samsung Internet' : /firefox|fxios/i.test(ua) ? 'Firefox' : /chrome|crios/i.test(ua) ? 'Chrome' : /safari/i.test(ua) ? 'Safari' : '';
+    return os + (br ? ' · ' + br : '');
+  }
+  async function regFileFor(sub) {
+    const id = await subId(sub);
+    const body = JSON.stringify({ device: deviceLabel(), added: new Date().toISOString().slice(0, 10), subscription: sub.toJSON() }, null, 2);
+    return { id, path: `push/subs/${id}.json`, url: ghNewFile(`push/subs/${id}.json`, body) };
+  }
+  // is this device's file already in the repository? (raw.githubusercontent.com allows cross-origin reads)
+  async function isRegistered(sub) {
+    try {
+      const id = await subId(sub);
+      const r = await fetch(`https://raw.githubusercontent.com/${REPO}/main/push/subs/${id}.json?t=${Date.now()}`, { cache: 'no-store' });
+      return r.ok;
+    } catch (e) { return null; }
+  }
+  async function pushState() {
+    if (!pushCapable()) return isIOS && !standalone() ? 'ios-browser' : 'unsupported';
+    if (!PUSH) await loadPushConfig();
+    if (!PUSH) return 'no-server';
+    if (Notification.permission === 'denied') return 'denied';
+    const sub = await currentSub();
+    if (!sub) return 'off';
+    const key = sub.options && sub.options.applicationServerKey ? b64u(sub.options.applicationServerKey) : PUSH.publicKey;
+    if (key !== PUSH.publicKey) return 'stale';   // subscribed with an older key → subscribe again
+    if (S.push && S.push.ok === sub.endpoint) return 'on';
+    const reg = await isRegistered(sub);
+    if (reg) { S.push = { ok: sub.endpoint }; save(); return 'on'; }
+    return 'unregistered';
+  }
+  async function enablePush() {
+    // iOS needs the permission request to come straight from the tap, so it is the first thing awaited
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('لم يُسمح بالإشعارات'); return openPushSheet(); }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (sub) { const k = sub.options && sub.options.applicationServerKey ? b64u(sub.options.applicationServerKey) : ''; if (k && k !== PUSH.publicKey) { await sub.unsubscribe(); sub = null; } }
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: unb64u(PUSH.publicKey) });
+      S.push = null; save(); syncSWState();
+    } catch (e) { toast('تعذّر تفعيل الإشعارات على هذا الجهاز'); }
+    openPushSheet();
+  }
+  async function disablePush() {
+    const sub = await currentSub();
+    if (sub) await sub.unsubscribe().catch(() => {});
+    S.push = null; save(); closeModal(); toast('أُوقفت الإشعارات على هذا الجهاز'); refreshPushBtn();
+  }
+  async function testNotification() {
+    const reg = await navigator.serviceWorker.ready;
+    reg.showNotification('هل قرأت التحصين؟', { body: 'هذا إشعار تجريبي — سيصلك التذكير كل 6 ساعات.', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'tahseen-test', lang: 'ar', dir: 'rtl' });
+  }
+  async function refreshPushBtn() {
+    const b = $('#pushBtn'); if (!b) return;
+    const st = await pushState();
+    b.textContent = st === 'on' ? 'مفعّلة ✓' : st === 'unregistered' ? 'أكمل التفعيل' : 'تفعيل';
+  }
+  async function openPushSheet() {
+    closeSheet();
+    openModal('<div class="sheet-grip"></div><h2>الإشعارات</h2><p class="note">جارٍ التحقق…</p>');
+    const st = await pushState();
+    const times = '<p class="note">يصل التذكير «هل قرأت التحصين؟» أربع مرات يومياً تقريباً عند: 5 فجراً، 11 ظهراً، 5 عصراً، 11 مساءً (بتوقيت السعودية)، وقد يتأخر دقائق.</p>';
+    const H = t => `<div class="sheet-grip"></div><h2>${t}</h2>`;
+    let html;
+    if (st === 'ios-browser') html = H('الإشعارات على آيفون') + `<p class="note" style="font-size:17px">آيفون يسمح بالإشعارات فقط للتطبيق المضاف إلى الشاشة الرئيسية (iOS 16.4 أو أحدث). أضِف «تحصين» إلى الشاشة الرئيسية، ثم افتحه من أيقونته وفعّل الإشعارات من الإعدادات.</p>
+      <div class="modal-actions"><button class="btn ghost" data-close>لاحقاً</button><button class="btn gold" id="pIos">طريقة الإضافة</button></div>`;
+    else if (st === 'unsupported') html = H('الإشعارات') + '<p class="note" style="font-size:17px">هذا المتصفح لا يدعم الإشعارات. جرّب Chrome أو Edge أو Safari بنسخة حديثة.</p><button class="btn gold block" data-close>حسناً</button>';
+    else if (st === 'no-server') html = H('إعداد الإشعارات') + `<p class="note" style="font-size:17px">الإشعارات تحتاج إعداداً لمرة واحدة فقط من صاحب الموقع (دقيقتان)، وبعده تُفعَّل على أي جهاز بضغطة.</p>
+      <div class="modal-actions"><button class="btn ghost" data-close>لاحقاً</button><a class="btn gold" href="#/push-setup" data-close>ابدأ الإعداد</a></div>`;
+    else if (st === 'denied') html = H('الإشعارات محظورة') + '<p class="note" style="font-size:17px">سبق رفض الإشعارات لهذا التطبيق. فعّلها من إعدادات الجهاز: الإعدادات ← الإشعارات ← تحصين (آيفون)، أو من إعدادات الموقع في المتصفح (أندرويد)، ثم ارجع هنا.</p><button class="btn gold block" data-close>حسناً</button>';
+    else if (st === 'off' || st === 'stale') html = H('فعّل التذكير') + times + `<div class="modal-actions"><button class="btn ghost" data-close>لاحقاً</button><button class="btn gold" id="pOn">تفعيل الإشعارات</button></div>`;
+    else if (st === 'unregistered') {
+      const f = await regFileFor(await currentSub());
+      html = H('خطوة أخيرة: سجّل هذا الجهاز') + `<ol class="steps">
+          <li><span class="n">1</span><span>اضغط «تسجيل في GitHub» — تفتح صفحة ملف جاهز باسم الجهاز.</span></li>
+          <li><span class="n">2</span><span>اضغط الزر الأخضر <b>Commit changes</b> ثم <b>Commit changes</b> مرة أخرى.</span></li>
+          <li><span class="n">3</span><span>ارجع هنا واضغط «تحقّق».</span></li></ol>
+        <p class="note">يلزم أن تكون مسجّلاً دخولك في GitHub. يُحفظ في الملف عنوان استقبال الإشعارات لهذا الجهاز فقط، ولا يستطيع أحد الإرسال إليه بدون المفتاح السري.</p>
+        <div class="modal-actions"><a class="btn gold" href="${f.url}" target="_blank" rel="noopener">تسجيل في GitHub</a><button class="btn ghost" id="pChk">تحقّق</button></div>
+        <button class="btn ghost block" id="pTest">إشعار تجريبي</button>`;
+    } else html = H('الإشعارات مفعّلة ✓') + times + `<div class="modal-actions"><button class="btn gold" id="pTest">إشعار تجريبي</button><button class="btn ghost" id="pOff">إيقاف</button></div><button class="btn ghost block" data-close>تم</button>`;
+    openModal(html);
+    const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+    on('#pIos', iosInstallSheet);
+    on('#pOn', enablePush);
+    on('#pOff', disablePush);
+    on('#pTest', testNotification);
+    on('#pChk', async () => { const ok = await isRegistered(await currentSub()); if (ok) { toast('تم تسجيل الجهاز — الإشعارات مفعّلة'); openPushSheet(); } else toast(ok === null ? 'تعذّر التحقق الآن، أعد المحاولة' : 'لم يظهر الملف بعد. إن حفظته للتو فانتظر دقيقة ثم أعد التحقق'); });
+    refreshPushBtn();
+  }
+
+  // one-time server setup (owner only): make the key pair on this device; nothing leaves it except through the owner's own copy/paste
+  async function renderPushSetup() {
+    pageIdx = -1; releaseWake();
+    await loadPushConfig();
+    const done = !!PUSH;
+    if (!done && !S.pushSetup) {
+      const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
+      const j = await crypto.subtle.exportKey('jwk', kp.privateKey);
+      const raw = new Uint8Array(65); raw[0] = 4; raw.set(unb64u(j.x), 1); raw.set(unb64u(j.y), 33);
+      S.pushSetup = { pub: b64u(raw), priv: j.d }; save(true);
+    }
+    const k = S.pushSetup;
+    app.innerHTML = `<header class="apphead"><a class="icon-btn" href="#/" aria-label="الرئيسية">${I.home}</a><h1 class="goldtxt" style="font-size:28px">إعداد الإشعارات</h1></header>` + (done
+      ? `<section class="box"><h3>تم الإعداد ✓</h3><p class="sub">المفتاح العام منشور، ويمكن الآن تفعيل الإشعارات على أي جهاز من الإعدادات ← الإشعارات.</p>
+          <div style="margin-top:12px"><button class="btn gold block" id="goPush">فعّل الإشعارات على هذا الجهاز</button></div></section>
+        ${k && k.pub === PUSH.publicKey ? `<section class="box"><h3>المفتاح السري</h3><p class="sub">ما زال محفوظاً مؤقتاً على هذا الجهاز. إن لم تضعه بعد في أسرار GitHub باسم <b dir="ltr">VAPID_PRIVATE_KEY</b> فانسخه الآن، ثم احذفه من الجهاز.</p>
+          <textarea class="keybox" id="privBox" readonly dir="ltr" style="display:block;width:100%;margin-top:10px;min-height:64px;resize:none;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:600 14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;word-break:break-all;-webkit-user-select:all;user-select:all">${k.priv}</textarea>
+          <div class="row2"><button class="btn gold" id="cpPriv">نسخ المفتاح</button><a class="btn ghost" href="https://github.com/${REPO}/settings/secrets/actions/new" target="_blank" rel="noopener">صفحة الأسرار</a></div>
+          <button class="btn ghost block" style="margin-top:10px" id="rmPriv">حفظته — احذفه من هذا الجهاز</button></section>` : ''}`
+      : `<p class="note" style="font-size:16px;text-align:right">مرة واحدة فقط. أُنشئ زوج مفاتيح على هذا الجهاز: مفتاح سري تضعه أنت في GitHub، ومفتاح عام يُنشر مع التطبيق. لا تغلق هذه الصفحة حتى تنتهي.</p>
+        <section class="box"><h3>1 · المفتاح السري</h3>
+          <p class="sub">انسخه، ثم افتح صفحة الأسرار في GitHub: الاسم <b dir="ltr">VAPID_PRIVATE_KEY</b> والقيمة الصق المفتاح، ثم <b>Add secret</b>. لا ترسله لأحد.</p>
+          <textarea class="keybox" id="privBox" readonly dir="ltr" style="display:block;width:100%;margin-top:10px;min-height:64px;resize:none;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:600 14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;word-break:break-all;-webkit-user-select:all;user-select:all">${k.priv}</textarea>
+          <div class="row2"><button class="btn gold" id="cpPriv">نسخ المفتاح</button><a class="btn ghost" href="https://github.com/${REPO}/settings/secrets/actions/new" target="_blank" rel="noopener">صفحة الأسرار</a></div></section>
+        <section class="box"><h3>2 · المفتاح العام</h3>
+          <p class="sub">بعد حفظ السر، اضغط الزر: تفتح صفحة ملف جاهز، اضغط فيها <b>Commit changes</b> مرتين. يُنشر التحديث خلال دقيقة أو دقيقتين.</p>
+          <div style="margin-top:12px"><a class="btn gold block" href="${ghNewFile('data/push.json', JSON.stringify({ publicKey: k.pub, subject: SITE }, null, 2) + '\n')}" target="_blank" rel="noopener">نشر المفتاح العام في GitHub</a></div></section>
+        <section class="box"><h3>3 · تحقّق</h3><p class="sub">بعد دقيقتين اضغط «تحقّق». إذا ظهر «تم الإعداد» فعّل الإشعارات على كل جهاز من الإعدادات.</p>
+          <div style="margin-top:12px"><button class="btn ghost block" id="chkSetup">تحقّق</button></div></section>`);
+    const c = $('#cpPriv'); if (c) c.addEventListener('click', () => { const t = $('#privBox'); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => toast('نُسخ المفتاح السري'), () => { t.select(); toast('حدّد النص وانسخه يدوياً'); }); });
+    const ch = $('#chkSetup'); if (ch) ch.addEventListener('click', async () => { await loadPushConfig(); if (PUSH && PUSH.publicKey === k.pub) renderPushSetup(); else if (PUSH) toast('يوجد مفتاح عام مختلف منشور — يجب أن يطابق السر'); else toast('لم يُنشر بعد. انتظر دقيقة وأعد المحاولة'); });
+    const gp = $('#goPush'); if (gp) gp.addEventListener('click', openPushSheet);
+    const rm = $('#rmPriv'); if (rm) rm.addEventListener('click', () => { delete S.pushSetup; save(true); toast('حُذف المفتاح السري من هذا الجهاز'); renderPushSetup(); });
   }
 
   /* ---------- audio engine ---------- */
@@ -393,7 +567,7 @@
         <button class="icon-btn" id="gear" aria-label="الإعدادات">${I.gear}</button>
       </header>
       ${installCard()}
-      ${due ? `<div class="remind">${I.bell}<div><b>هل قرأت التحصين؟</b><small>${S.lastRead ? 'آخر قراءة محتسبة ' + ago(Date.now() - S.lastRead) : 'لم تُسجَّل قراءة محتسبة بعد'}</small></div></div>` : ''}
+      ${due ? `<div class="remind">${I.bell}<div><b>هل قرأت التحصين؟</b><small>${S.lastRead ? 'آخر قراءة محتسبة ' + ago(Date.now() - S.lastRead) : 'لم تُسجَّل قراءة محتسبة بعد'}</small></div><button class="btn ghost small" id="remPush" style="flex:none;padding:7px 10px;font-size:14.5px" hidden>فعّل الإشعارات</button></div>` : ''}
       ${sess}
       <section class="box">
         <div class="stats">
@@ -411,6 +585,8 @@
     app.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => { S.prefs.mode = b.dataset.mode; save(); renderHome(); }));
     $('#gear').addEventListener('click', openSheet);
     const ib = $('#instBtn'); if (ib) ib.addEventListener('click', doInstall);
+    const rp = $('#remPush');
+    if (rp) { rp.addEventListener('click', openPushSheet); pushState().then(st => { if (['off', 'stale', 'unregistered', 'ios-browser'].includes(st)) rp.hidden = false; }).catch(() => {}); }
     const sb = $('#startBtn'); if (sb) sb.addEventListener('click', startOver);
     const rb = $('#restartBtn'); if (rb) rb.addEventListener('click', () => confirmSheet('البدء من جديد', 'ستبدأ جلسة جديدة من الصفحة الأولى، ويُصفَّر عدّاد الجلسة الحالية دون احتسابها.', 'ابدأ من جديد', startOver));
   }
@@ -536,6 +712,7 @@
     document.querySelectorAll('#repeatSeg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.rep === S.prefs.repeat));
     $('#reciterSel').value = S.prefs.reciter;
     $('#autoChk').checked = !!S.prefs.auto;
+    refreshPushBtn();
     $('#wakeChk').checked = !!S.prefs.wake;
   }
   function openSheet() { syncSheet(); $('#sheet').hidden = false; $('#sheetBackdrop').hidden = false; }
@@ -552,7 +729,8 @@
     $('#autoChk').addEventListener('change', e => { S.prefs.auto = e.target.checked; save(); });
     $('#wakeChk').addEventListener('change', e => { S.prefs.wake = e.target.checked; save(); if (S.prefs.wake) requestWake(); else releaseWake(); });
     $('#resetBtn').addEventListener('click', () => { closeSheet(); confirmSheet('تصفير الجلسة', 'سيُمسح موضعك الحالي وعدّاد الجلسة دون احتسابها. لا يتأثر سجل القراءات.', 'تصفير', () => { stopAudio(); S.session = null; save(true); toast('تم تصفير الجلسة'); location.hash = '#/'; route(); }); });
-    $('#clearHistBtn').addEventListener('click', () => { closeSheet(); confirmSheet('مسح سجل القراءات', 'سيُمسح عدد القراءات اليومية والمجموع نهائياً من هذا الجهاز.', 'مسح', () => { S.history = {}; S.total = 0; S.lastRead = 0; save(true); toast('تم مسح السجل'); route(); }); });
+    $('#clearHistBtn').addEventListener('click', () => { closeSheet(); confirmSheet('مسح سجل القراءات', 'سيُمسح عدد القراءات اليومية والمجموع نهائياً من هذا الجهاز.', 'مسح', () => { S.history = {}; S.total = 0; S.lastRead = 0; save(true); syncSWState(); toast('تم مسح السجل'); route(); }); });
+    $('#pushBtn').addEventListener('click', openPushSheet);
     $('#sheetClose').addEventListener('click', closeSheet);
     $('#sheetBackdrop').addEventListener('click', closeSheet);
     $('#modalBackdrop').addEventListener('click', closeModal);
@@ -570,6 +748,7 @@
       renderPage(i);
       if (dir === 'next' && !(S.session.scroll[i] > 0)) window.scrollTo(0, 0); else restoreScroll(i);
     } else if (h === '#/done') renderDone();
+    else if (h === '#/push-setup') { renderPushSetup(); window.scrollTo(0, 0); }
     else { renderHome(); window.scrollTo(0, 0); }
   }
   window.addEventListener('hashchange', route);
@@ -585,15 +764,17 @@
   document.addEventListener('visibilitychange', () => {
     lastTick = Date.now();
     if (document.visibilityState === 'hidden') { saveScroll(); save(true); }
-    else { requestWake(); if (pageIdx < 0 && DATA && location.hash !== '#/done') renderHome(); }
+    else { requestWake(); if (onHome()) renderHome(); }
   });
   window.addEventListener('pagehide', () => { saveScroll(); save(true); });
 
   /* ---------- boot ---------- */
   applyPrefs();
   initSheet();
+  loadPushConfig(); syncSWState();
   fetch('data/ruqyah.json').then(r => r.json()).then(d => {
     DATA = d;
+    remapSession(DATA.pages.map(p => p.id));
     if (S.session && S.session.page >= DATA.pages.length) S.session.page = 0;
     const h = location.hash;
     if ((!h || h === '#/' || h === '#') && S.session) history.replaceState(null, '', '#/p/' + (S.session.page + 1));   // resume where you stopped
