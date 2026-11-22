@@ -4,12 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>تحصين · الرقية الشرعية</title>
-<meta name="description" content="تحصين — الرقية الشرعية مرتبة صفحةً صفحة: التحريج، التحصين، والسور والآيات بخط مصحف المدينة، مع القراءة والاستماع.">
+<meta name="description" content="تحصين — الرقية الشرعية مرتبة صفحةً صفحة: الفاتحة، البقرة، والسور، والتحريج والتحصين، بخط مصحف المدينة، مع القراءة والاستماع.">
 <meta name="theme-color" content="#041a10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="تحصين">
+<meta name="application-name" content="تحصين">
+<meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
@@ -21,7 +23,9 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div id="app" aria-live="polite"></div>
+<div id="app" aria-live="polite">
+  <div class="splash"><img src="icons/logo-mark.png" alt="" width="120" height="120"><b class="goldtxt">تحصين</b></div>
+</div>
 
 <!-- settings sheet -->
 <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
@@ -66,12 +70,26 @@
   </div>
 
   <div class="set-row">
-    <span class="lbl">تقدّم اليوم</span>
-    <button class="btn ghost small" id="resetBtn">تصفير التقدّم</button>
+    <label for="wakeChk">إبقاء الشاشة مضاءة أثناء القراءة</label>
+    <input type="checkbox" id="wakeChk" class="switch">
+  </div>
+
+  <div class="set-row">
+    <span class="lbl">الجلسة الحالية</span>
+    <button class="btn ghost small" id="resetBtn">تصفير الجلسة</button>
+  </div>
+
+  <div class="set-row">
+    <span class="lbl">سجل القراءات</span>
+    <button class="btn ghost small" id="clearHistBtn">مسح السجل</button>
   </div>
 
   <button class="btn gold block" id="sheetClose">تم</button>
 </section>
+
+<!-- generic modal sheet -->
+<div class="sheet-backdrop" id="modalBackdrop" hidden></div>
+<section class="sheet" id="modal" role="dialog" aria-modal="true" hidden></section>
 
 <div class="toast" id="toast" role="status" hidden></div>
 

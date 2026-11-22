@@ -1,6 +1,6 @@
 /* تحصين — offline cache. Pages, code and texts: network first (so updates show at once), cache when offline.
    Fonts and icons: cache first. Audio streams from the network and is never cached here. */
-const CACHE = 'tahseen-v3';
+const CACHE = 'tahseen-v4';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'app.js', 'data/ruqyah.json', 'manifest.webmanifest',
   'fonts/UthmanicHafs-v-3.0.ttf', 'fonts/amiri-700.woff2', 'fonts/amiri-latin-700.woff2',
